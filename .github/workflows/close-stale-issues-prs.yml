@@ -12,7 +12,7 @@ jobs:
         github-token: ${{ secrets.META_PROJECT_SERVICE_PAT }}
         script: |
           const MAX_DAYS_OLD = 30; // Example: 30 days of inactivity
-          const repos = ["realestate-scrapper"]; // List of repositories to process
+          const repos = ["allan-ja/realestate-scrapper"]; // List of repositories to process
           const staleLabel = "Stale";
 
           // Function to calculate the date N days ago in YYYY-MM-DD format
