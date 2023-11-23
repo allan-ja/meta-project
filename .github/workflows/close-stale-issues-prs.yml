@@ -1,0 +1,45 @@
+name: Mark Stale Issues and PRs in Multiple Repos
+
+on: [push]
+
+jobs:
+  mark-stale-items:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Mark Stale Issues and PRs
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.servicePAT }}
+        script: |
+          const MAX_DAYS_OLD = 30; // Example: 30 days of inactivity
+          const repos = ["realestate-scrapper"]; // List of repositories to process
+          const staleLabel = "Stale";
+
+          for (const repo of repos) {
+            // Function to label stale items
+            async function labelStaleItems(type) {
+              const searchQuery = `repo:${repo} is:open updated:<-${MAX_DAYS_OLD}d is:${type}`;
+              
+              // Find stale items
+              const staleItems = await github.rest.search.issuesAndPullRequests({
+                  q: searchQuery
+              });
+
+              // Label stale items
+              for (const item of staleItems.data.items) {
+                  await github.rest.issues.addLabels({
+                      owner: context.repo.owner,
+                      repo: repo,
+                      issue_number: item.number,
+                      labels: [staleLabel]
+                  });
+                  console.log(`Labeled ${type} #${item.number} as stale in ${repo}`);
+              }
+            }
+
+            // Label stale issues
+            await labelStaleItems('issue');
+
+            // Label stale PRs
+            await labelStaleItems('pr');
+          }
