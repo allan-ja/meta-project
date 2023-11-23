@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Mark Stale Issues and PRs
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       with:
         github-token: ${{ secrets.META_PROJECT_SERVICE_PAT }}
         script: |
@@ -15,10 +15,19 @@ jobs:
           const repos = ["realestate-scrapper"]; // List of repositories to process
           const staleLabel = "Stale";
 
+          // Function to calculate the date N days ago in YYYY-MM-DD format
+          function getDateNDaysAgo(days) {
+            const date = new Date();
+            date.setDate(date.getDate() - days);
+            return date.toISOString().split('T')[0];
+          }
+
+          const date30DaysAgo = getDateNDaysAgo(MAX_DAYS_OLD);
+
           for (const repo of repos) {
             // Function to label stale items
             async function labelStaleItems(type) {
-              const searchQuery = `repo:${repo} is:open updated:<-${MAX_DAYS_OLD}d is:${type}`;
+              const searchQuery = `repo:${repo} is:open updated:<${date30DaysAgo} is:${type}`;
               
               // Find stale items
               const staleItems = await github.rest.search.issuesAndPullRequests({
