@@ -9,7 +9,7 @@ jobs:
     - name: Mark Stale Issues and PRs
       uses: actions/github-script@v6
       with:
-        github-token: ${{ secrets.servicePAT }}
+        github-token: ${{ secrets.META_PROJECT_SERVICE_PAT }}
         script: |
           const MAX_DAYS_OLD = 30; // Example: 30 days of inactivity
           const repos = ["realestate-scrapper"]; // List of repositories to process
