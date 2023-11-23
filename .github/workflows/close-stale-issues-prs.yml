@@ -27,7 +27,7 @@ jobs:
           for (const repo of repos) {
             // Function to label stale items
             async function labelStaleItems(type) {
-              const searchQuery = `repo:${repo} is:open updated:<${date30DaysAgo} is:${type}`;
+              const searchQuery = `repo:${context.repo.owner}/${repo} is:open updated:<${date30DaysAgo} is:${type}`;
               
               // Find stale items
               const staleItems = await github.rest.search.issuesAndPullRequests({
