@@ -11,44 +11,64 @@ jobs:
       with:
         github-token: ${{ secrets.META_PROJECT_SERVICE_PAT }}
         script: |
-          const MAX_DAYS_OLD = 30; // Example: 30 days of inactivity
-          const repos = ["realestate-scrapper"]; // List of repositories to process
-          const staleLabel = "Stale";
+          const DAYS_FOR_STALE_PR = 30;
+          const MONTHS_FOR_STALE_BRANCH = 6;
+          const DRY_RUN = true; // Set to false to perform actual closing/deletion
 
-          // Function to calculate the date N days ago in YYYY-MM-DD format
-          function getDateNDaysAgo(days) {
+          // Function to calculate past date
+          function getPastDate(days = 0, months = 0) {
             const date = new Date();
             date.setDate(date.getDate() - days);
-            return date.toISOString().split('T')[0];
+            date.setMonth(date.getMonth() - months);
+            return date.toISOString();
           }
 
-          const date30DaysAgo = getDateNDaysAgo(MAX_DAYS_OLD);
+          const stalePRDate = getPastDate(DAYS_FOR_STALE_PR);
+          const staleBranchDate = getPastDate(0, MONTHS_FOR_STALE_BRANCH);
 
-          for (const repo of repos) {
-            // Function to label stale items
-            async function labelStaleItems(type) {
-              const searchQuery = `repo:${context.repo.owner}/${repo} is:open updated:<${date30DaysAgo} is:${type}`;
-              
-              // Find stale items
-              const staleItems = await github.rest.search.issuesAndPullRequests({
-                  q: searchQuery
-              });
+          const repo = "realestate-scrapper";
+          const owner = context.repo.owner;
 
-              // Label stale items
-              for (const item of staleItems.data.items) {
-                  await github.rest.issues.addLabels({
-                      owner: context.repo.owner,
-                      repo: repo,
-                      issue_number: item.number,
-                      labels: [staleLabel]
-                  });
-                  console.log(`Labeled ${type} #${item.number} as stale in ${repo}`);
+          // Close stale PRs
+          const stalePRs = await github.rest.search.issuesAndPullRequests({
+            q: `repo:${owner}/${repo} is:pr is:open updated:<${stalePRDate}`
+          });
+
+          for (const pr of stalePRs.data.items) {
+            console.log(`Stale PR found: #${pr.number} - ${pr.title}`);
+
+            
+          }
+
+          // Delete stale branches without associated PR
+          const branches = await github.rest.repos.listBranches({
+            owner: owner,
+            repo: repo
+          });
+
+          for (const branch of branches.data) {
+            if (branch.name === 'main' || branch.name === 'master') continue; // Skip main and master branches
+
+            const lastCommit = await github.rest.repos.getCommit({
+              owner: owner,
+              repo: repo,
+              ref: branch.name
+            });
+
+            if (new Date(lastCommit.data.commit.committer.date) < new Date(staleBranchDate)) {
+              console.log(`Stale branch found: ${branch.name}`);
+
+              if (DRY_RUN) {
+                // Check if branch is not protected
+                const isProtected = await github.rest.repos.getBranchProtection({
+                  owner: owner,
+                  repo: repo,
+                  branch: branch.name
+                }).then(() => true).catch(() => false);
+
+                if (!isProtected) {
+                  console.log(`Stale branch to be delete on ${repo}: ${branch.name}`)
+                }
               }
             }
-
-            // Label stale issues
-            await labelStaleItems('issue');
-
-            // Label stale PRs
-            await labelStaleItems('pr');
           }
